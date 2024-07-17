@@ -1,0 +1,143 @@
+import requests
+import os
+
+from bs4 import BeautifulSoup
+from selenium import webdriver
+from selenium.webdriver.chrome.service import Service
+from selenium.webdriver.chrome.options import Options
+import pandas as pd
+import time
+
+# use Selenium
+options = Options()
+options.add_argument('--headless')
+chromedriver_path = "C:/Users/LiweiCHEN/Downloads/chromedriver-win32/chromedriver.exe"
+service = Service(chromedriver_path)
+driver = webdriver.Chrome(service=service)
+
+# user agent
+kv = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36'}
+
+# product url list
+urls = [
+     "https://www.amazon.com/Balance-Nature-Vegetable-Supplement-Tablets/dp/B082P9FRLS/ref=sr_1_2_sspa?crid=11IZHHH0YI3TX&dib=eyJ2IjoiMSJ9.V1WKlDUtQsZvQOsFUiGVAzvKAl9jifaESTGI5p8a_hyxMTj4q47Y7PKvjqVXHHrMcw5D3Kjaz3ClxDKiSxmrh5TO2hcBSTC9Cak3TuE3uMcgeYdGfsnfERuk84Fs1rcg3rRH10A7sEpGS3r-QQuR9rK6qddSTYNEzwFWMZ7-ODyuZiUSpBqWXzGyI3nE4qSPSehAPQx57fua3cyiw8YbY-pn9KF5aKj1LHwIPBpJW3JpbmMx6A-ttbIdsqg68XGneo11GyO-h_DkXdPxSr5ur-OcqKUg61RKRG6AVJgP8Xw.n9x2yxtJa65azCgUn2jtA1l6YrvuedRyn4JQCxIo2Rg&dib_tag=se&keywords=healthy+food+supplements&qid=1721058830&sprefix=healthy+food+supplement%2Caps%2C836&sr=8-2-spons&sp_csd=d2lkZ2V0TmFtZT1zcF9hdGY&psc=1",
+    "https://www.amazon.com/Garden-Life-Multivitamin-Women-Supplement/dp/B0039LF4Y4/ref=sr_1_3_sspa?crid=11IZHHH0YI3TX&dib=eyJ2IjoiMSJ9.V1WKlDUtQsZvQOsFUiGVAzvKAl9jifaESTGI5p8a_hyxMTj4q47Y7PKvjqVXHHrMcw5D3Kjaz3ClxDKiSxmrh5TO2hcBSTC9Cak3TuE3uMcgeYdGfsnfERuk84Fs1rcg3rRH10A7sEpGS3r-QQuR9rK6qddSTYNEzwFWMZ7-ODyuZiUSpBqWXzGyI3nE4qSPSehAPQx57fua3cyiw8YbY-pn9KF5aKj1LHwIPBpJW3JpbmMx6A-ttbIdsqg68XGneo11GyO-h_DkXdPxSr5ur-OcqKUg61RKRG6AVJgP8Xw.n9x2yxtJa65azCgUn2jtA1l6YrvuedRyn4JQCxIo2Rg&dib_tag=se&keywords=healthy+food+supplements&qid=1721058830&sprefix=healthy+food+supplement%2Caps%2C836&sr=8-3-spons&sp_csd=d2lkZ2V0TmFtZT1zcF9hdGY&psc=1",
+    "https://www.amazon.com/Multivitamin-Ancient-Nutrition-Fermented-Friendly/dp/B08W2PBC48/ref=sxin_15_pa_sp_search_thematic_sspa?content-id=amzn1.sym.20582a66-3fea-414a-a28a-1cfcb5c8fe7e%3Aamzn1.sym.20582a66-3fea-414a-a28a-1cfcb5c8fe7e&crid=11IZHHH0YI3TX&cv_ct_cx=healthy+food+supplements&dib=eyJ2IjoiMSJ9.f0N3vUKZFLm-ej2LRZIlwHQ7pjOz-fCa5tgD1tXQfODE4Rps_xA_iOkgqfF90W_pckVZjZmEaxNoVud9KrZgVw.kHoeGSe-4bTDbbi3drv7dwwRL84lW2cF3iEgHRqu-Gs&dib_tag=se&keywords=healthy+food+supplements&pd_rd_i=B08W2PBC48&pd_rd_r=2e89802b-ea24-40e3-b7e9-d917f6099ffe&pd_rd_w=NuXoS&pd_rd_wg=taVMC&pf_rd_p=20582a66-3fea-414a-a28a-1cfcb5c8fe7e&pf_rd_r=8QE2MY4T9JYWF3AFYWPE&qid=1721143203&sbo=RZvfv%2F%2FHxDF%2BO5021pAnSA%3D%3D&sprefix=healthy+food+supplement%2Caps%2C836&sr=1-4-ac07dfd7-5f37-4797-bcf7-0f4905c82761-spons&sp_csd=d2lkZ2V0TmFtZT1zcF9zZWFyY2hfdGhlbWF0aWM&psc=1",
+    "https://www.amazon.com/Cardio-Miracle-Complete-Nutritional-L-Arginine/dp/B01H6BTRFO/ref=sr_1_4_sspa?crid=11IZHHH0YI3TX&dib=eyJ2IjoiMSJ9.V1WKlDUtQsZvQOsFUiGVAzvKAl9jifaESTGI5p8a_hyxMTj4q47Y7PKvjqVXHHrMcw5D3Kjaz3ClxDKiSxmrh5TO2hcBSTC9Cak3TuE3uMcgeYdGfsnfERuk84Fs1rcg3rRH10A7sEpGS3r-QQuR9rK6qddSTYNEzwFWMZ7-ODyuZiUSpBqWXzGyI3nE4qSPSehAPQx57fua3cyiw8YbY-pn9KF5aKj1LHwIPBpJW3JpbmMx6A-ttbIdsqg68XGneo11GyO-h_DkXdPxSr5ur-OcqKUg61RKRG6AVJgP8Xw.n9x2yxtJa65azCgUn2jtA1l6YrvuedRyn4JQCxIo2Rg&dib_tag=se&keywords=healthy+food+supplements&qid=1721058830&sprefix=healthy+food+supplement%2Caps%2C836&sr=8-4-spons&sp_csd=d2lkZ2V0TmFtZT1zcF9hdGY&psc=1",
+    "https://www.amazon.com/Amazing-Grass-Superfood-Outrageous-Probiotics/dp/B00112K2MC/ref=sr_1_5?crid=11IZHHH0YI3TX&dib=eyJ2IjoiMSJ9.V1WKlDUtQsZvQOsFUiGVA1LvWjwux1g9yRY9VZYQ-XnE_dJjHH835HQ7ek4uxw4KFf_VIrJ3y5yHUpo9SdtAz-HvW7B9NG_cK5Ab9QSkpVb1zfo5awmatoAMIl6erj7UgxOMwezHGHGWKqeMXtrMhTAWiOvd67Q1sRLejD_32z3ZJy82WDPtk47-HLKOI0S1HmycbqM3ZZmyLGpeXVrBAp0ExpJj98c_OXA5Ka9dv5Q1BcCI_3GS5BtEz3kf2NUqqKMWk75L_evKvWux9csRngMmTHw0qeRZzpqRGACSbHQ.jLRS2mcMxTV_eoBrdnAco9-neBpUP2C_Oo0rtH9L49o&dib_tag=se&keywords=healthy+food+supplements&qid=1721143203&sprefix=healthy+food+supplement%2Caps%2C836&sr=8-5",
+   "https://www.amazon.com/Supplement-Vegetables-Vegetarian-Superfood-Carlyle/dp/B098XWF3LS/ref=sr_1_6?crid=11IZHHH0YI3TX&dib=eyJ2IjoiMSJ9.V1WKlDUtQsZvQOsFUiGVA1LvWjwux1g9yRY9VZYQ-XnE_dJjHH835HQ7ek4uxw4KFf_VIrJ3y5yHUpo9SdtAz-HvW7B9NG_cK5Ab9QSkpVb1zfo5awmatoAMIl6erj7UgxOMwezHGHGWKqeMXtrMhTAWiOvd67Q1sRLejD_32z3ZJy82WDPtk47-HLKOI0S1HmycbqM3ZZmyLGpeXVrBAp0ExpJj98c_OXA5Ka9dv5Q1BcCI_3GS5BtEz3kf2NUqqKMWk75L_evKvWux9csRngMmTHw0qeRZzpqRGACSbHQ.jLRS2mcMxTV_eoBrdnAco9-neBpUP2C_Oo0rtH9L49o&dib_tag=se&keywords=healthy+food+supplements&qid=1721143203&sprefix=healthy+food+supplement%2Caps%2C836&sr=8-6",
+    "https://www.amazon.com/NATURELO-Vitamin-Tocopherols-Supplement-Immunity/dp/B0841865YD/ref=sr_1_7?crid=11IZHHH0YI3TX&dib=eyJ2IjoiMSJ9.V1WKlDUtQsZvQOsFUiGVA1LvWjwux1g9yRY9VZYQ-XnE_dJjHH835HQ7ek4uxw4KFf_VIrJ3y5yHUpo9SdtAz-HvW7B9NG_cK5Ab9QSkpVb1zfo5awmatoAMIl6erj7UgxOMwezHGHGWKqeMXtrMhTAWiOvd67Q1sRLejD_32z3ZJy82WDPtk47-HLKOI0S1HmycbqM3ZZmyLGpeXVrBAp0ExpJj98c_OXA5Ka9dv5Q1BcCI_3GS5BtEz3kf2NUqqKMWk75L_evKvWux9csRngMmTHw0qeRZzpqRGACSbHQ.jLRS2mcMxTV_eoBrdnAco9-neBpUP2C_Oo0rtH9L49o&dib_tag=se&keywords=healthy+food+supplements&qid=1721143203&sprefix=healthy+food+supplement%2Caps%2C836&sr=8-7",
+    "https://www.amazon.com/NATURELO-Vegan-Supplement-Women-Deficiency/dp/B08G168TSV/ref=sr_1_8?crid=11IZHHH0YI3TX&dib=eyJ2IjoiMSJ9.V1WKlDUtQsZvQOsFUiGVA1LvWjwux1g9yRY9VZYQ-XnE_dJjHH835HQ7ek4uxw4KFf_VIrJ3y5yHUpo9SdtAz-HvW7B9NG_cK5Ab9QSkpVb1zfo5awmatoAMIl6erj7UgxOMwezHGHGWKqeMXtrMhTAWiOvd67Q1sRLejD_32z3ZJy82WDPtk47-HLKOI0S1HmycbqM3ZZmyLGpeXVrBAp0ExpJj98c_OXA5Ka9dv5Q1BcCI_3GS5BtEz3kf2NUqqKMWk75L_evKvWux9csRngMmTHw0qeRZzpqRGACSbHQ.jLRS2mcMxTV_eoBrdnAco9-neBpUP2C_Oo0rtH9L49o&dib_tag=se&keywords=healthy+food+supplements&qid=1721143203&sprefix=healthy+food+supplement%2Caps%2C836&sr=8-8",
+    "https://www.amazon.com/Garden-Life-Vegan-Superfood-Powder/dp/B00FB1S988/ref=sxin_15_pa_sp_search_thematic_sspa?content-id=amzn1.sym.20582a66-3fea-414a-a28a-1cfcb5c8fe7e%3Aamzn1.sym.20582a66-3fea-414a-a28a-1cfcb5c8fe7e&crid=11IZHHH0YI3TX&cv_ct_cx=healthy+food+supplements&dib=eyJ2IjoiMSJ9.f0N3vUKZFLm-ej2LRZIlwHQ7pjOz-fCa5tgD1tXQfODE4Rps_xA_iOkgqfF90W_pckVZjZmEaxNoVud9KrZgVw.kHoeGSe-4bTDbbi3drv7dwwRL84lW2cF3iEgHRqu-Gs&dib_tag=se&keywords=healthy+food+supplements&pd_rd_i=B00FB1S988&pd_rd_r=2e89802b-ea24-40e3-b7e9-d917f6099ffe&pd_rd_w=NuXoS&pd_rd_wg=taVMC&pf_rd_p=20582a66-3fea-414a-a28a-1cfcb5c8fe7e&pf_rd_r=8QE2MY4T9JYWF3AFYWPE&qid=1721143203&sbo=Tc8eqSFhUl4VwMzbE4fw%2Fw%3D%3D&sprefix=healthy+food+supplement%2Caps%2C836&sr=1-1-ac07dfd7-5f37-4797-bcf7-0f4905c82761-spons&sp_csd=d2lkZ2V0TmFtZT1zcF9zZWFyY2hfdGhlbWF0aWM&psc=1",
+   "https://www.amazon.com/Fruits-Veggies-Supplement-Green-Superfood/dp/B0C4MYX4DP/ref=sxin_15_pa_sp_search_thematic_sspa?content-id=amzn1.sym.20582a66-3fea-414a-a28a-1cfcb5c8fe7e%3Aamzn1.sym.20582a66-3fea-414a-a28a-1cfcb5c8fe7e&crid=11IZHHH0YI3TX&cv_ct_cx=healthy+food+supplements&dib=eyJ2IjoiMSJ9.f0N3vUKZFLm-ej2LRZIlwHQ7pjOz-fCa5tgD1tXQfODE4Rps_xA_iOkgqfF90W_pckVZjZmEaxNoVud9KrZgVw.kHoeGSe-4bTDbbi3drv7dwwRL84lW2cF3iEgHRqu-Gs&dib_tag=se&keywords=healthy+food+supplements&pd_rd_i=B0C4MYX4DP&pd_rd_r=2e89802b-ea24-40e3-b7e9-d917f6099ffe&pd_rd_w=NuXoS&pd_rd_wg=taVMC&pf_rd_p=20582a66-3fea-414a-a28a-1cfcb5c8fe7e&pf_rd_r=8QE2MY4T9JYWF3AFYWPE&qid=1721143203&sbo=Tc8eqSFhUl4VwMzbE4fw%2Fw%3D%3D&sprefix=healthy+food+supplement%2Caps%2C836&sr=1-3-ac07dfd7-5f37-4797-bcf7-0f4905c82761-spons&sp_csd=d2lkZ2V0TmFtZT1zcF9zZWFyY2hfdGhlbWF0aWM&psc=1",
+    "https://www.amazon.sg/Organic-Whole-Psyllium-Husks-Supplement/dp/B08XN4RYWZ/ref=sr_1_15?crid=1B2YQA17358NV&dib=eyJ2IjoiMSJ9.NhCD3Y-DLAldJ-yDTVrcn4bYQfnVlHJKaHJ_nvPy0LifJepssQ5y_sVqDmgczrY8RbUMtaLtB7PMCAhkvtzUiEmXE_b0OybQn_HFB9l63By2VV5sZMyVW55Phb_aN9RthHp14NMqWTMkg93Iv1ExxCOM-VBLbAexaHljNni8nXq9DeHHTZj5aIb_f76FBKfqLtt1qo_HAnlp2Rj-sVlXEa9GPulv7SEsNiXZRolFI3cZsAkbCvE7BYhYp1LdKmQcQDpV8NGUf_gFe7UWsuf2NBJ7My8qM7z0wqEB16sFJlE.Y5K2ojEaEcIM9M18iJZwg-Mv9GxfVMz1uui7xpycRks&dib_tag=se&keywords=healthy+food+supplements&qid=1721229258&sprefix=healthy+food+supplement%2Caps%2C829&sr=8-15",
+    "https://www.amazon.com/KOS-Organic-Beet-Capsules-1500mg/dp/B088TFV3WY/ref=sr_1_11_sspa?crid=11IZHHH0YI3TX&dib=eyJ2IjoiMSJ9.V1WKlDUtQsZvQOsFUiGVA1LvWjwux1g9yRY9VZYQ-XnE_dJjHH835HQ7ek4uxw4KFf_VIrJ3y5yHUpo9SdtAz-HvW7B9NG_cK5Ab9QSkpVb1zfo5awmatoAMIl6erj7UgxOMwezHGHGWKqeMXtrMhTAWiOvd67Q1sRLejD_32z3ZJy82WDPtk47-HLKOI0S1HmycbqM3ZZmyLGpeXVrBAp0ExpJj98c_OXA5Ka9dv5Q1BcCI_3GS5BtEz3kf2NUqqKMWk75L_evKvWux9csRngMmTHw0qeRZzpqRGACSbHQ.jLRS2mcMxTV_eoBrdnAco9-neBpUP2C_Oo0rtH9L49o&dib_tag=se&keywords=healthy+food+supplements&qid=1721143203&sprefix=healthy+food+supplement%2Caps%2C836&sr=8-11-spons&sp_csd=d2lkZ2V0TmFtZT1zcF9tdGY&psc=1"
+    # more URL
+]
+
+
+
+# product and review list
+products_info = []
+reviews_info = []
+
+# for loop to extract information
+for idx, url in enumerate(urls, start=1):
+    print(f"extract {idx}...")
+
+    # use requests to scrap html and save
+    req = requests.get(url, headers=kv)
+    if req.status_code == 200:
+        webpage = req.text
+        with open(f'C:/Users/LiweiCHEN/W13-16/amazon-_{idx}.html', 'w', encoding='utf-8') as f:
+            f.write(webpage)
+    else:
+        print(f"fail，status：{req.status_code}")
+        continue
+    
+    # use Selenium to extract product information
+    with webdriver.Chrome(service=service, options=options) as browser:
+        browser.get(url)
+        time.sleep(3)  # wait for url loading
+        
+        # save Selenium extracted html
+        output_path = f'C:/Users/LiweiCHEN/W13-16/amazon-_{idx}_selenium.html'
+        with open(output_path, 'w', encoding='utf-8') as fw:
+            fw.write(browser.page_source)
+    
+    # read the saved local HTML file
+    input_path = f'C:/Users/LiweiCHEN/W13-16/amazon-_{idx}_selenium.html'
+    with open(input_path, 'r', encoding='utf-8') as file:
+        page_content = file.read()
+    
+    # use BeautifulSoup to parse html
+    soup = BeautifulSoup(page_content, 'html.parser')
+
+    # extract product title
+    title_element = soup.select_one("#productTitle")
+    title = title_element.text.strip() if title_element else None
+
+    # extract product price
+    price_element = soup.select_one("span.a-price").select_one("span.a-offscreen")
+    price = price_element.text.strip() if price_element else None
+
+    # extract rating
+    rating_element = soup.select_one(".a-icon-alt")
+    rating = rating_element.text.strip() if rating_element else None
+
+    # extract review
+    review_count_element = soup.select_one("#acrCustomerReviewText")
+    review_count = review_count_element.text.strip() if review_count_element else None
+
+    # put product info to list
+    products_info.append({
+        "title": title,
+        "price": price,
+        "rating": rating,
+        "review_count": review_count
+    })
+
+    # 
+    review_elements = soup.select("div.review")  # use real HTML structure to select
+
+    for review in review_elements:
+        r_author_element = review.select_one("span.a-profile-name")
+        r_author = r_author_element.text.strip() if r_author_element else None
+
+        r_rating_element = review.select_one("i.review-rating")
+        r_rating = r_rating_element.text.replace("out of 5 stars", '').strip() if r_rating_element else None
+
+        r_title_element = review.select_one("a.review-title")
+        r_title_span_element = r_title_element.select_one("span:not([class])") if r_title_element else None
+        r_title = r_title_span_element.text.strip() if r_title_span_element else None
+
+     #  r_content_element = review.select_one("span.review-text")
+     #  r_content = r_content_element.text.strip() if r_content_element else None
+
+        r_date_element = review.select_one("span.review-date")
+        r_date = r_date_element.text.strip() if r_date_element else None
+
+        r_verified_element = review.select_one("span.a-size-mini")
+        r_verified = r_verified_element.text.strip() if r_verified_element else None
+
+        reviews_info.append({
+            "product_idx": idx,
+            "author": r_author,
+            "rating": r_rating,
+            "title": r_title,
+       #    "content": r_content,
+            "date": r_date,
+            "verified": r_verified,
+        })
+
+# create product DataFrame
+products_df = pd.DataFrame(products_info)
+# create review DataFrame
+reviews_df = pd.DataFrame(reviews_info)
+
+# save DataFrame as Excel
+with pd.ExcelWriter("amazon_products_and_reviews.xlsx") as writer:
+    products_df.to_excel(writer, sheet_name='Products', index=False)
+    reviews_df.to_excel(writer, sheet_name='Reviews', index=False)
+
+print("data save as amazon_products_and_reviews.xlsx")
